@@ -64,7 +64,7 @@ class Goodreads(Source):
         if match:
             return (self.ID_NAME, match.groups(0)[0])
         return None
-        
+
     def create_query(self, log, title=None, authors=None, identifiers={}, asin=None):
 
         isbn = check_isbn(identifiers.get('isbn', None))
@@ -113,21 +113,21 @@ class Goodreads(Source):
         mi.isbn = check_isbn(mi.isbn)
 
     def get_goodreads_id_using_api(self, log, abort, timeout=30, identifier=None):
-        
+
         log.debug('get_goodreads_id_using_api - identifiers=%s' % identifier)
-        
+
         if not identifier:
             return None
-        
+
         goodreads_id = None
-        
+
         br = self.browser
         autocomplete_api_url = "https://www.goodreads.com/book/auto_complete?format=json&q="
         query = autocomplete_api_url + identifier
 
         if abort.is_set():
             return
-       
+
         try:
             log.info('Querying using autocomplete API: %s' % query)
             raw = br.open_novisit(query, timeout=timeout).read()
@@ -143,8 +143,8 @@ class Goodreads(Source):
                 goodreads_id = json_result[0].get('bookId', None)
         log.info('Result using autocomplete API: %s' % goodreads_id)
         return goodreads_id
-        
-        
+
+
     def get_goodreads_id_using_asin(self, log, abort, timeout=30, identifiers={}):
         for identifier_name, identifier in identifiers.items():
             identifier_name = identifier_name.lower()
@@ -163,7 +163,7 @@ class Goodreads(Source):
         goodreads_id = identifiers.get(self.ID_NAME, None)
         if goodreads_id:
             return goodreads_id
-        
+
         isbn = check_isbn(identifiers.get('isbn', None))
         if isbn:
             log.info('get_goodreads_id_from_identifiers - isbn=%s' % isbn)
@@ -189,7 +189,7 @@ class Goodreads(Source):
         log.debug('identify - start. title=%s, authors=%s, identifiers=%s' % (title, authors, identifiers))
         # Unlike the other metadata sources, if we have a goodreads id then we
         # do not need to fire a "search" at Goodreads.com. Instead we will be
-        # able to go straight to the URL for that book. We can use some identifiers 
+        # able to go straight to the URL for that book. We can use some identifiers
         # to get the Goodreads ID via an API if we don't already have it.
         try:
             if identifiers:
@@ -202,6 +202,7 @@ class Goodreads(Source):
         br = self.browser
 
         if goodreads_id:
+            log.debug('We have a goodreads_id: %s' % (goodreads_id))
             matches.append('%s/book/show/%s' % (Goodreads.BASE_URL, goodreads_id))
         else:
             # Can't find a valid id, so search using the title and authors.
