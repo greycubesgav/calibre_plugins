@@ -65,10 +65,19 @@ class Worker(Thread): # Get details
                 self.lang_map[name] = code
 
     def run(self):
+        retries = 0
+        max_retries = 7
         try:
-            self.get_details()
+            while retries < max_retries:
+                retries += 1
+                self.log.debug('%i/%i get_details for url: %r'%(retries,max_retries,self.url))
+                self.get_details()
+                if self.goodreads_id is not None:
+                    break
+                if retries < max_retries:
+                    self.log.error("Maximum retries reached %i"%max_retries)
         except:
-            self.log.exception('get_details failed for url: %r'%self.url)
+            self.log.exception('get_details failed for url: %r'%(retries,max_retries,self.url))
 
     def get_details(self):
         try:
@@ -132,7 +141,7 @@ class Worker(Thread): # Get details
             msg = 'Failed attempting to read book json meta tag from: %r'%self.url
             self.log.exception(msg)
             return
-        
+
     def parse_book_json(self, root):
         self.log.info('Trying to parse book json for 2022 web page format')
         script_node = root.xpath('//script[@id="__NEXT_DATA__"]')
@@ -163,14 +172,14 @@ class Worker(Thread): # Get details
                 elif key.startswith("Work:"):
                     # Should only be one Work node, just grab the Stats from within it.
                     work_json = apolloState[key]
-             
+
             #self.log.info('Got book json: ', book_json)
             #self.log.info('Got contributors json: ', contributors_list_json)
             return (book_json, series_json, contributors_list_json, work_json)
         except:
             self.log.exception('Failed to parse book json: %r'%script_node[0].text)
             return (None, None, None, None)
-    
+
     def parse_details(self, root, book_json, series_json, contributors_list_json, work_json):
         try:
             goodreads_id = self.parse_goodreads_id(self.url)
@@ -480,7 +489,7 @@ class Worker(Thread): # Get details
     def parse_rating(self, work_json):
         if "stats" not in work_json:
             return None
-        stats_json = work_json["stats"]        
+        stats_json = work_json["stats"]
         if "averageRating" not in stats_json:
             return None
         rating = float(stats_json["averageRating"])
@@ -506,7 +515,7 @@ class Worker(Thread): # Get details
     def parse_rating_count(self, work_json):
         if "stats" not in work_json:
             return None
-        stats_json = work_json["stats"]        
+        stats_json = work_json["stats"]
         if "ratingsCount" not in stats_json:
             return None
         rating_count = int(stats_json["ratingsCount"])
@@ -783,7 +792,7 @@ class Worker(Thread): # Get details
             if ans:
                 self.log.info('parse_language: ', ans)
                 return ans
-    
+
     def parse_language_legacy(self, root):
         lang_node = root.xpath('//div[@id="metacol"]/div[@id="details"]/div[@class="buttons"]/div[@id="bookDataBox"]/div/div[@itemprop="inLanguage"]')
         if lang_node:
